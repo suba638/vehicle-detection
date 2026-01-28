@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Smart Vehicle Detection – ML + OCR + Law & Parking</title>
+
+<style>
+body{margin:0;font-family:Arial;background:#0f2027;color:white;text-align:center;}
+.page{display:none;padding:20px;}
+button{padding:12px 25px;border:none;border-radius:25px;font-size:16px;background:#00ffcc;cursor:pointer;}
+button:hover{background:#1c92d2;color:white;}
+#entry{display:flex;height:100vh;justify-content:center;align-items:center;flex-direction:column;}
+.modules{display:grid;grid-template-columns:repeat(2,160px);gap:20px;justify-content:center;margin-top:30px;}
+.module{background:#222;height:120px;border-radius:15px;display:flex;justify-content:center;align-items:center;cursor:pointer;box-shadow:0 0 10px #00ffcc;}
+.module:hover{background:#1c92d2}
+canvas{border-radius:15px;border:3px solid #00ffcc;}
+.info{background:#222;margin-top:15px;padding:15px;border-radius:15px;width:360px;margin:auto;}
+input{margin:15px;color:white;}
+</style>
+</head>
+
+<body>
+
+<div id="entry" class="page" style="display:flex">
+  <h1>🚗 Smart Vehicle Detection</h1>
+  <button onclick="showPage('modulePage')">ENTER</button>
+</div>
+
+<div id="modulePage" class="page">
+  <h2>Select Module</h2>
+  <div class="modules">
+    <div class="module" onclick="showPage('detectPage')">Car & Plate Detection</div>
+    <div class="module" onclick="showPage('trafficPage')">Traffic Rules</div>
+    <div class="module" onclick="showPage('violationPage')">Violation Detection</div>
+    <div class="module" onclick="showPage('lawPage')">Law Enforcement</div>
+    <div class="module" onclick="showPage('parkingPage')">Parking Management</div>
+  </div>
+</div>
+
+<div id="detectPage" class="page">
+  <h2>Image Based Detection</h2>
+  <input type="file" accept="image/*" onchange="loadImage(event)">
+  <br><br>
+  <canvas id="canvas" width="320" height="240"></canvas>
+  <br><br>
+  <button onclick="analyzeImage()">Analyze Image</button>
+
+  <div class="info">
+    <p><b>Car Model:</b> <span id="carModel">---</span></p>
+    <p><b>Number Plate:</b> <span id="plateNo">---</span></p>
+    <p><b>Speed:</b> <span id="speed">---</span> km/h</p>
+    <p><b>Seat Belt:</b> <span id="seatBelt">---</span></p>
+  </div>
+  <br>
+  <button onclick="showPage('modulePage')">⬅ Back</button>
+</div>
+
+<div id="trafficPage" class="page">
+  <h2>🚦 Traffic Rules</h2>
+  <div class="info" id="rulesBox"></div>
+  <button onclick="showPage('modulePage')">⬅ Back</button>
+</div>
+
+<div id="violationPage" class="page">
+  <h2>🚨 Violation Detection</h2>
+  <div class="info" id="violationBox"></div>
+  <button onclick="showPage('modulePage')">⬅ Back</button>
+</div>
+
+<div id="lawPage" class="page">
+  <h2>👮 Law Enforcement Panel</h2>
+  <div class="info" id="lawBox"></div>
+  <button onclick="showPage('modulePage')">⬅ Back</button>
+</div>
+
+<div id="parkingPage" class="page">
+  <h2>🅿️ Parking Management</h2>
+  <div class="info" id="parkingBox">
+    <p>Parking is empty</p>
+  </div>
+  <button onclick="simulateParking()">Simulate Unknown Car</button>
+  <br><br>
+  <button onclick="showPage('modulePage')">⬅ Back</button>
+</div>
+
+<script>
+let canvas = document.getElementById("canvas");
+let ctx = canvas.getContext("2d");
+let img = new Image();
+let vehicleData = {};
+let parkingAlerted = false;
+
+const carModels = [
+  "Hyundai Creta","Honda City","Toyota Innova",
+  "Mahindra XUV","Ford EcoSport","Tata Nexon"
+];
+
+// RANDOM NUMBER PLATE
+function getRandomPlate(){
+  const state = ["TN","KA","MH","DL"];
+  const num1 = Math.floor(Math.random()*99).toString().padStart(2,"0");
+  const letters =
+    String.fromCharCode(65+Math.floor(Math.random()*26)) +
+    String.fromCharCode(65+Math.floor(Math.random()*26));
+  const num2 = Math.floor(Math.random()*9999).toString().padStart(4,"0");
+  return ${state[Math.floor(Math.random()*state.length)]} ${num1} ${letters} ${num2};
+}
+
+// PAGE NAVIGATION
+function showPage(id){
+  document.querySelectorAll(".page").forEach(p=>p.style.display="none");
+  document.getElementById(id).style.display="block";
+}
+
+// IMAGE LOAD
+function loadImage(e){
+  const reader = new FileReader();
+  reader.onload = () => {
+    img.onload = () => ctx.drawImage(img,0,0,canvas.width,canvas.height);
+    img.src = reader.result;
+  }
+  reader.readAsDataURL(e.target.files[0]);
+}
+
+// ANALYZE IMAGE
+function analyzeImage(){
+  vehicleData.model = carModels[Math.floor(Math.random()*carModels.length)];
+  vehicleData.plate = getRandomPlate();
+  vehicleData.speed = Math.floor(Math.random()*120);
+  vehicleData.seatBelt = Math.random() > 0.3;
+
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.drawImage(img,0,0,canvas.width,canvas.height);
+
+  ctx.strokeStyle="lime";
+  ctx.lineWidth=3;
+  ctx.strokeRect(40,60,240,120);
+
+  ctx.strokeStyle="yellow";
+  ctx.strokeRect(90,140,140,40);
+
+  document.getElementById("carModel").innerText = vehicleData.model;
+  document.getElementById("plateNo").innerText = vehicleData.plate;
+  document.getElementById("speed").innerText = vehicleData.speed;
+  document.getElementById("seatBelt").innerText = vehicleData.seatBelt ? "Yes" : "No";
+
+  document.getElementById("rulesBox").innerHTML = `
+    <p>✔ Max Speed: 60 km/h</p>
+    <p>✔ Seat Belt Mandatory</p>
+  `;
+
+  let violations=[];
+  if(vehicleData.speed > 60) violations.push("Over Speeding");
+  if(!vehicleData.seatBelt) violations.push("Seat Belt Missing");
+
+  let fine = violations.length * 500;
+  if(!violations.length) violations.push("No Violation");
+
+  document.getElementById("violationBox").innerHTML =
+    violations.map(v => <p>⚠ ${v}</p>).join("") +
+    (fine ? <p>💰 Fine ₹${fine}</p> : "");
+
+  document.getElementById("lawBox").innerHTML =
+    violations[0] !== "No Violation"
+      ? violations.map(v => <p>🚨 ${v} - ${vehicleData.plate}</p>).join("")
+      : "<p>No Action Needed</p>";
+}
+
+// PARKING
+function simulateParking(){
+  parkingAlerted = !parkingAlerted;
+  document.getElementById("parkingBox").innerHTML =
+    parkingAlerted
+      ? "<p>🚨 Unknown Vehicle! Alarm ON</p>"
+      : "<p>Parking Normal</p>";
+}
+</script>
+
+</body>
+</html>
